@@ -1,0 +1,13 @@
+#version 460 core
+
+layout (local_size_x = 128) in;
+
+struct Particle
+{
+	vec3 position;
+	vec3 velocity;
+	vec3 force;
+	float density;
+	float pressure;
+	
+};
