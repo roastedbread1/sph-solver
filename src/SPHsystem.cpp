@@ -80,11 +80,6 @@ void SYS::initParticles(SPHsys* system, SYS::SPHSettings& settings, size_t parti
 	ReadAndCompileCompShader(system->bitonicSortShader, "D:/codes/more codes/c++/sph/sph-solver/shaders/bitonic.comp");
 	ReadAndCompileCompShader(system->cellBoundsShader, "D:/codes/more codes/c++/sph/sph-solver/shaders/bounds.comp");
 
-
-
-	
-	
-	
 	genParticles(system);
 	system->started = false;
 

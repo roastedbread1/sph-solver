@@ -41,7 +41,6 @@ float random(uint seed)
 
 mat4 calculateTransformMatrix(vec3 position)
 {
-    // Scale the matrix by modelScale
     return mat4(
         modelScale, 0.0, 0.0, 0.0,
         0.0, modelScale, 0.0, 0.0,

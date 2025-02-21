@@ -9,7 +9,7 @@ inspiration:
 
 
 current issue:  
-1. Particles arent visible before simulation started
+1. Particles arent visible before the simulation starts
 2. particle generation needs improvement
 3. particles never settle, when and if they do they dont stack on top of each other
 4. the whole simulation is not scaled properly, especially the smoothing radius to model size ratio
@@ -36,7 +36,7 @@ this should generate the visual studio solution and you can build it from there
 
 ### Linux
 
-I have not tested this in linux, but in theory it should work since there are not platform independent code
+I have not tested this in linux, but in theory it should work since there are no platform independent code
 
 install vcpkg
 

@@ -15,8 +15,8 @@
 std::vector<Texture> textures_loaded;
 global_variable Shader crossShader;
 global_variable Shader modelShader;
-SYS::SPHsys bruh;
-SYS::SPHSettings settings;
+global_variable SYS::SPHsys bruh;
+global_variable SYS::SPHSettings settings;
 
 global_variable glm::mat4 trans;
 global_variable glm::mat4 view;
@@ -293,15 +293,15 @@ int main()
 	stbi_set_flip_vertically_on_load(true);
 
 	SYS::initSettings(&settings,
-		0.2f,          // mass 
+		2.0f,          // mass 
 		1000.0f,        // restDensity
 		0.02f,          // gasConst 
 		0.5f,           // viscosity 
 		0.3f,           // h (smoothing length)
 		9.81f,          // g (gravity)
 		0.728f,        // tension 
-		1.0f,           // cellSize (match h)
-		glm::vec3(0.5f), // bounds 
+		0.3f,           // cellSize (match h)
+		glm::vec3(0.2f), // bounds 
 		0.001f,        // dt (smaller for stability)
 		0.6f            // boundaryDamping
 	);
