@@ -1,0 +1,33 @@
+#version 460 core
+layout(local_size_x = 128) in;
+
+struct CellParticle {
+    uint key;
+    uint index;
+};
+
+layout(std430, binding = 2) buffer CellParticleBuffer {
+    CellParticle cellParticles[];
+};
+
+layout(std430, binding = 3) buffer CellBoundsBuffer {
+    uint cellStart[1048576];
+    uint cellEnd[1048576];
+};
+
+void main() {
+    uint pIndex = gl_GlobalInvocationID.x;
+    if(pIndex >= cellParticles.length()) return;
+    
+    uint currentKey = cellParticles[pIndex].key;
+
+    bool isStart = (pIndex == 0) || (currentKey != cellParticles[pIndex-1].key);
+    bool isEnd = (pIndex == cellParticles.length()-1) || (currentKey != cellParticles[pIndex+1].key);
+
+    if(isStart) {
+        atomicMin(cellStart[currentKey], pIndex);
+    }
+    if(isEnd) {
+        atomicMax(cellEnd[currentKey], pIndex + 1);
+    }
+}

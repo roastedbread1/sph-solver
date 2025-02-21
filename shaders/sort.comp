@@ -1,0 +1,85 @@
+#version 460 core
+layout(local_size_x = 128) in;
+
+struct Particle {
+    vec3 position;
+    float density;     
+    vec3 velocity;
+    float pressure;    
+    vec3 force;
+    float padding;   
+    float nearDensity;
+};
+
+struct CellParticle {
+    uint key;
+    uint index;
+};
+
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+layout(std430, binding = 2) buffer CellParticleBuffer {
+    CellParticle cellParticles[];
+};
+
+
+layout(std430, binding = 4) buffer DebugBuffer {
+    uint debugData[];
+};
+
+uniform float h;  
+uniform vec3 bounds;
+
+const uint TABLE_SIZE = 1048576;
+
+uint calculateHash(ivec3 cell) {
+    if(cell.x < -1000 || cell.x > 1000 || 
+       cell.y < -1000 || cell.y > 1000 || 
+       cell.z < -1000 || cell.z > 1000) {
+        debugData[0] = 1; 
+        debugData[1] = uint(cell.x);
+        debugData[2] = uint(cell.y);
+        debugData[3] = uint(cell.z);
+    }
+    
+    return (uint(cell.x * 73856093u) 
+          ^ uint(cell.y * 19349663u) 
+          ^ uint(cell.z * 83492791u)) % TABLE_SIZE;
+}
+
+ivec3 calculateCell(vec3 position) {
+    
+    if(position.x < -bounds.x || position.x > bounds.x ||
+       position.y < -bounds.y || position.y > bounds.y ||
+       position.z < -bounds.z || position.z > bounds.z) {
+        debugData[4] = 1; 
+        debugData[5] = floatBitsToUint(position.x);
+        debugData[6] = floatBitsToUint(position.y);
+        debugData[7] = floatBitsToUint(position.z);
+    }
+    
+    return ivec3(floor(position / h));
+}
+
+void main() {
+    uint pIndex = gl_GlobalInvocationID.x;
+    if(pIndex >= particles.length()) return;
+    
+    
+    if(pIndex < 8) {
+        debugData[8 + pIndex] = pIndex;
+    }
+    
+    vec3 pos = particles[pIndex].position;
+    ivec3 cell = calculateCell(pos);
+    uint hash = calculateHash(cell);
+    
+    if(pIndex < 8) {
+        debugData[16 + pIndex] = hash;
+    }
+    
+    cellParticles[pIndex].key = hash;
+    cellParticles[pIndex].index = pIndex;
+}

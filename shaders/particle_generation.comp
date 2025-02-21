@@ -2,79 +2,115 @@
 
 layout(local_size_x = 128) in;
 
-struct Particle
-{
-	vec3 position;
-	vec3 velocity;
-	vec3 force;
-
-	float density;
-	float pressure;
-
-
+struct Particle {
+    vec3 position;
+    float density;     
+    vec3 velocity;
+    float pressure;    
+    vec3 force;
+    float padding;     
+    float nearDensity;
 };
 
-layout(std430, binding = 0) buffer ParticleBuffer
-{
-	Particle particles[];
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
 };
 
-layout(std430, binding = 1) buffer MatrixBuffer 
-{
-	mat4 matrices[];
+layout(std430, binding = 1) buffer MatrixBuffer {
+    mat4 matrices[];
 };
 
 uniform float particleSeperation;
 uniform int particleCubeWidth;
 uniform float h;
+uniform vec3 sphereScale;
 
-uint hash(uint x)
+uint wang_hash(uint seed)
 {
-    x += (x << 10u);
-    x ^= (x >> 6u);
-    x += (x << 3u);
-    x ^= (x >> 11u);
-    x += (x << 15u);
-    return x;
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
 }
 
-float random (uint seed)
+float random(uint seed)
 {
-	return (hash(seed)) / 4294967295.0;
+    return float(wang_hash(seed)) / 4294967295.0;
 }
 
-void main()
+mat4 calculateTransformMatrix(vec3 position)
 {
-	uint index = gl_GlobalInvocationID.x;
-	if(index >= particles.length()) return;
 
-	int x = int(index % particleCubeWidth);
-	int y = int(index / particleCubeWidth) * particleCubeWidth;
-	int z = int(index / (particleCubeWidth * particleCubeWidth));
-
-	float ranX = (random(index * 1) * 2.0 - 1.0) * h/10.0;
-    float ranY = (random(index * 2) * 2.0 - 1.0) * h/10.0;
-    float ranZ = (random(index * 3) * 2.0 - 1.0) * h/10.0;
-
-
-	vec3 position = vec3(
-        x * particleSeperation + ranX - 1.5,	
-        y * particleSeperation + ranY + h + 0.1,
-        z * particleSeperation + ranZ - 1.5
-    );
-
-
-	particles[index].position = position;
-    particles[index].velocity = vec3(0.0);
-    particles[index].force = vec3(0.0);
-    particles[index].density = 0.0;
-    particles[index].pressure = 0.0;
-
-
-	    matrices[index] = mat4(
+    mat4 translation = mat4(
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
         position.x, position.y, position.z, 1.0
-        );
+    );
+    
+
+    mat4 scale = mat4(
+        sphereScale.x, 0.0, 0.0, 0.0,
+        0.0, sphereScale.y, 0.0, 0.0,
+        0.0, 0.0, sphereScale.z, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    );
+    
+    return translation * scale;
+}
+
+//void main()
+//{
+  //  uint index = gl_GlobalInvocationID.x;
+    //if(index >= particles.length()) return;
+    
+  //  int x = int(index % particleCubeWidth);
+   // int y = int((index / particleCubeWidth) % particleCubeWidth);
+   // int z = int(index / (particleCubeWidth * particleCubeWidth));
+    
+   // float ranX = (random(index * 1) * 2.0 - 1.0) * h/10.0;
+    //float ranY = (random(index * 2) * 2.0 - 1.0) * h/10.0;
+    //float ranZ = (random(index * 3) * 2.0 - 1.0) * h/10.0;
+    
+    //vec3 position = vec3(
+      //  x * particleSeperation + ranX - 1.5,
+       // y * particleSeperation + ranY + h + 0.1,
+        //z * particleSeperation + ranZ - 1.5
+    //);
+    
+   // particles[index].position = position;
+    //particles[index].velocity = vec3(0.0, -1.0, 0.0);
+    //particles[index].force = vec3(0.0);
+    //particles[index].density = 0.0;
+    //particles[index].pressure = 0.0;
+    
+   // matrices[index] = calculateTransformMatrix(position);
+//}
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if(index >= particles.length()) return;
+    
+    int x = int(index % particleCubeWidth);
+    int y = int((index / particleCubeWidth) % particleCubeWidth);
+    int z = int(index / (particleCubeWidth * particleCubeWidth));
+    
+    // Increased spacing between particles
+    float spacing = particleSeperation ;
+    
+    vec3 position = vec3(
+        (x - particleCubeWidth/2) * spacing,
+        y * spacing + 2.0, // Start higher up
+        (z - particleCubeWidth/2) * spacing
+    );
+    
+    particles[index].position = position;
+    particles[index].velocity = vec3(0.0); // Start with zero velocity
+    particles[index].force = vec3(0.0);
+    particles[index].density = 0.0;
+    particles[index].pressure = 0.0;
+    
+    matrices[index] = calculateTransformMatrix(position);
 }

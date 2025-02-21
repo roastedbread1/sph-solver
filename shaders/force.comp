@@ -1,0 +1,126 @@
+#version 460 core
+layout(local_size_x = 128) in;
+
+struct Particle {
+    vec3 position;
+    float density;
+    vec3 velocity;
+    float pressure;
+    vec3 force;
+    float padding;
+    float nearDensity;
+};
+
+struct CellParticle {
+    uint key;
+    uint index;
+};
+
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+layout(std430, binding = 2) buffer CellParticleBuffer {
+    CellParticle cellParticles[];
+};
+
+layout(std430, binding = 3) buffer cellBoundBuffer {
+    uint cellStart[1048576];
+    uint cellEnd[1048576];
+};
+
+uniform float mass;
+uniform float h;
+uniform float viscosity;
+uniform float tension;
+uniform float g;
+uniform float deltaTime;
+uniform float pressureMultiplier;
+uniform float nearPressureMultiplier;
+
+float pressureKernelDerivative(float r, float h) {
+    if(r > h || r == 0.0) return 0.0;
+    float term = (h - r) / (h * h * h);
+    return -45.0 * term * term;
+}
+
+float nearPressureKernelDerivative(float r, float h) {
+    if(r > h || r == 0.0) return 0.0;
+    float term = (h - r) / h;
+    return -90.0 * term * term / (h * r);
+}
+
+float viscosityKernel(float r, float h) {
+    if(r > h) return 0.0;
+    float term = 1.0 - r / h;
+    return term * term * term * term * (4.0 * r / h + 1.0);
+}
+
+uint calculateHash(ivec3 cell) {
+    return (uint(cell.x * 73856093) ^ 
+            uint(cell.y * 19349663) ^ 
+            uint(cell.z * 83492791)) % 1048576;
+}
+
+ivec3 calculateCell(vec3 position) {
+    return ivec3(floor(position / h));
+}
+
+void main() {
+    uint pIndex = gl_GlobalInvocationID.x;
+    if(pIndex >= particles.length()) return;
+
+    Particle particle = particles[pIndex];
+    vec3 pressureForce = vec3(0.0);
+    vec3 viscosityForce = vec3(0.0);
+
+    ivec3 particleCell = calculateCell(particle.position);
+
+    for(int x = -1; x <= 1; x++) {
+        for(int y = -1; y <= 1; y++) {
+            for(int z = -1; z <= 1; z++) {
+                ivec3 neighborCell = particleCell + ivec3(x, y, z);
+                uint cellHash = calculateHash(neighborCell);
+                
+                uint start = cellStart[cellHash];
+                uint end = cellEnd[cellHash];
+
+                for(uint i = start; i < end; i++) {
+                    uint neighborIndex = cellParticles[i].index;
+                    if(neighborIndex == pIndex) continue;
+
+                    Particle neighbor = particles[neighborIndex];
+                    vec3 diff = particle.position - neighbor.position;
+                    float r = length(diff);
+
+                    if(r < h && r > 0.0) {
+                        vec3 dir = diff / r;
+                        
+                        float sharedPressure = (particle.pressure + neighbor.pressure) / 2.0;
+                        float nearPressure = pressureMultiplier * sharedPressure;
+                        
+                        
+                        pressureForce += -dir * mass * (
+                            pressureKernelDerivative(r, h) * sharedPressure / neighbor.density +
+                            nearPressureKernelDerivative(r, h) * nearPressure / neighbor.density
+                        );
+                        
+                        
+                        vec3 velDiff = neighbor.velocity - particle.velocity;
+                        viscosityForce += viscosity * mass * velDiff * viscosityKernel(r, h) / neighbor.density;
+                    }
+                }
+            }
+        }
+    }
+
+   vec3 gravityForce = vec3(0.0, -g * mass, 0.0);
+    //vec3 gravityForce = vec3(0.0, -g , 0.0);
+    
+    //vec3 totalForce = pressureForce + viscosityForce + gravityForce;
+    //float maxForce = 10000.0; 
+   // if (length(totalForce) > maxForce) totalForce = normalize(totalForce) * maxForce;
+    //particles[pIndex].force = totalForce;
+    
+    particles[pIndex].force = pressureForce + viscosityForce + gravityForce;
+}

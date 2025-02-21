@@ -1,0 +1,88 @@
+#version 460 core
+layout(local_size_x = 128) in;
+
+struct Particle {
+    vec3 position;
+    float density;     
+    vec3 velocity;
+    float pressure;    
+    vec3 force;
+    float padding;    
+    float nearDensity;
+};
+
+layout(std430, binding = 0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+layout(std430, binding = 1) buffer MatrixBuffer {
+    mat4 matrices[];
+};
+
+uniform float particleSeperation;
+uniform int particleCubeWidth;
+uniform float h;
+uniform float modelScale;
+
+uint wang_hash(uint seed)
+{
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
+float random(uint seed)
+{
+    return float(wang_hash(seed)) / 4294967295.0;
+}
+
+mat4 calculateTransformMatrix(vec3 position)
+{
+    // Scale the matrix by modelScale
+    return mat4(
+        modelScale, 0.0, 0.0, 0.0,
+        0.0, modelScale, 0.0, 0.0,
+        0.0, 0.0, modelScale, 0.0,
+        position.x, position.y, position.z, 1.0
+    );
+}
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if(index >= particles.length()) return;
+    
+    float spacing = particleSeperation;
+    float boxSize = (particleCubeWidth - 1) * spacing;
+    float halfBoxSize = boxSize * 0.5;
+    
+    // grid position
+    int x = int(index % particleCubeWidth);
+    int y = int((index / particleCubeWidth) % particleCubeWidth);
+    int z = int(index / (particleCubeWidth * particleCubeWidth));
+    
+    
+    float randomOffset = spacing * 0.1;
+    float ranX = (random(index * 1) * 2.0 - 1.0) * randomOffset;
+    float ranY = (random(index * 2) * 2.0 - 1.0) * randomOffset;
+    float ranZ = (random(index * 3) * 2.0 - 1.0) * randomOffset;
+    
+    // base position in world space
+    vec3 position = vec3(
+        (x * spacing + ranX - halfBoxSize),
+        (y * spacing + ranY + h),  
+        (z * spacing + ranZ - halfBoxSize)
+    );
+    
+    
+    particles[index].position = position;
+    particles[index].velocity = vec3(0.0);
+    particles[index].force = vec3(0.0);
+    particles[index].density = 2.0;  
+    particles[index].pressure = 0.0;
+    
+    
+    matrices[index] = calculateTransformMatrix(position);
+}

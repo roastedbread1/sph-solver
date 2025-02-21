@@ -1,0 +1,103 @@
+#version 460 core
+layout(local_size_x = 128) in;
+
+struct Particle {
+    vec3 position;
+    float density;     
+    vec3 velocity;
+    float pressure;    
+    vec3 force;
+    float padding;    
+    float nearDensity;
+};
+
+struct CellParticle {
+    uint key;
+    uint index;
+};
+
+layout(std430, binding=0) buffer ParticleBuffer {
+    Particle particles[];
+};
+
+layout(std430, binding=2) buffer CellParticleBuffer {
+    CellParticle cellParticles[];
+};
+
+layout(std430, binding=3) buffer CellBoundsBuffer {
+    uint cellStart[1048576];
+    uint cellEnd[1048576];
+};
+
+uniform float mass;
+uniform float h;
+uniform float restDensity;
+uniform float gasConst;
+
+float kernelPoly6(float r, float h) {
+    if(r > h) return 0.0;
+    float h2 = h * h;
+    float h4 = h2 * h2;
+    float term = 1.0 - (r * r) / h2;
+    return 315.0 / (64.0 * 3.14159 * h4 * h) * term * term * term;
+}
+
+float kernelNearDensity(float r, float h) {
+    if(r > h) return 0.0;
+    float term = 1.0 - r / h;
+    return term * term * term;
+}
+
+uint calculateHash(ivec3 cell) {
+    return (uint(cell.x * 73856093) ^ 
+            uint(cell.y * 19349663) ^ 
+            uint(cell.z * 83492791)) % 1048576;
+}
+
+ivec3 calculateCell(vec3 position) {
+    return ivec3(floor(position / h));
+}
+
+void main() {
+    uint pIndex = gl_GlobalInvocationID.x;
+    if(pIndex >= particles.length()) return;
+
+    Particle particle = particles[pIndex];
+    float density = 0.0;
+    float nearDensity = 0.0;
+
+    ivec3 particleCell = calculateCell(particle.position);
+    
+    // search neighbor
+    for(int x = -1; x <= 1; x++) {
+        for(int y = -1; y <= 1; y++) {
+            for(int z = -1; z <= 1; z++) {
+                ivec3 neighborCell = particleCell + ivec3(x, y, z);
+                uint cellHash = calculateHash(neighborCell);
+                
+                uint start = cellStart[cellHash];
+                uint end = cellEnd[cellHash];
+                
+                for(uint i = start; i < end; i++) {
+                    uint neighborIndex = cellParticles[i].index;
+                    
+                    Particle neighbor = particles[neighborIndex];
+                    vec3 diff = particle.position - neighbor.position;
+                    float r = length(diff);
+                   
+                    if(r < h) {
+                        density += mass * kernelPoly6(r, h);
+                        nearDensity += mass * kernelNearDensity(r, h);
+                    }
+                }
+            }
+        }
+    }
+
+    density = max(density, 0.1);
+    particles[pIndex].density = density;
+    float pressure = gasConst * (density - restDensity);
+    particles[pIndex].pressure = max(pressure, 0.0);
+
+    memoryBarrierBuffer();
+}

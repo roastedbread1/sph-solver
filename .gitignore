@@ -1,2 +1,17 @@
 /out
 /.vs
+shaders/comp_density.comp
+shaders/comp_forces.comp
+shaders/density2.comp
+shaders/force2.comp
+shaders/generate.comp
+shaders/gravity.comp
+shaders/integrate2.comp
+shaders/model2.frag
+shaders/particle_generation.comp
+shaders/particle.comp
+shaders/shader.comp
+shaders/shader.frag
+shaders/lighting.frag
+shaders/lighting.vs
+shaders/shader.vs

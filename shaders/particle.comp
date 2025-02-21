@@ -63,4 +63,5 @@ void main()
 
 	particles[index].position = vec4(position, 1.0);
     particles[index].velocity = vec4(0.0, 0.0, 0.0, 0.0);
+
 }

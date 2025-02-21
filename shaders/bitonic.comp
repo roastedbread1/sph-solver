@@ -1,0 +1,38 @@
+#version 460 core
+layout(local_size_x = 128) in;
+
+struct CellParticle {
+    uint key;  
+    uint index;
+};
+
+layout(std430, binding = 2) buffer CellParticleBuffer {
+    CellParticle cellParticles[];
+};
+
+uniform uint stage;
+uniform uint passStage;
+uniform uint direction;
+
+void main() {
+    uint threadID = gl_GlobalInvocationID.x;
+    uint offset = 1u << (stage - passStage);
+    uint mask = offset - 1;
+    
+    uint j = threadID;
+    uint k = threadID ^ mask;
+    
+    if(k >= cellParticles.length()) return;
+    
+    uint keyA = cellParticles[j].key;
+    uint keyB = cellParticles[k].key;
+    
+    bool compareResult = (keyA > keyB);
+    if(direction == 0) compareResult = !compareResult;
+    
+    if(j < k && compareResult) {
+        CellParticle temp = cellParticles[j];
+        cellParticles[j] = cellParticles[k];
+        cellParticles[k] = temp;
+    }
+}
