@@ -23,6 +23,7 @@ uniform float particleSeperation;
 uniform int particleCubeWidth;
 uniform float h;
 uniform float modelScale;
+uniform float bounds;
 
 uint wang_hash(uint seed)
 {
@@ -54,7 +55,8 @@ void main() {
     if(index >= particles.length()) return;
     
     float spacing = particleSeperation;
-    float boxSize = (particleCubeWidth - 1) * spacing;
+    float boxSize = ((particleCubeWidth - 1) * spacing )/bounds;
+    //float boxSize = particleCubeWidth /bounds;
     float halfBoxSize = boxSize * 0.5;
     
     // grid position

@@ -292,25 +292,37 @@ int main()
 
 	stbi_set_flip_vertically_on_load(true);
 
+	//SYS::initSettings(&settings,
+	//	2.0f,          // mass 
+	//	10.0f,        // restDensity
+	//	100.0f,          // gasConst 
+	//	0.2f,           // viscosity 
+	//	0.27f,           // h (smoothing length)
+	//	9.81f,          // g (gravity)
+	//	0.0728f,        // tension 
+	//	0.27f,           // cellSize (match h)
+	//	glm::vec3(1.0f), // bounds 
+	//	0.0001f,        // dt (smaller for stability)
+	//	0.6f            // boundaryDamping
+	//);
+
 	SYS::initSettings(&settings,
-		2.0f,          // mass 
-		1000.0f,        // restDensity
-		0.02f,          // gasConst 
-		0.5f,           // viscosity 
-		0.3f,           // h (smoothing length)
+		2.0f,           // mass 
+		1000.0f,        // restDensity (more realistic water density)
+		200.0f,         // gasConst (much higher to enforce incompressibility)
+		1.5f,           // viscosity (increase for more damping)
+		0.27f,          // h (smoothing length)
 		9.81f,          // g (gravity)
-		0.728f,        // tension 
-		0.3f,           // cellSize (match h)
-		glm::vec3(0.2f), // bounds 
-		0.001f,        // dt (smaller for stability)
+		0.2f,           // tension (increase surface tension)
+		0.27f,          // cellSize
+		glm::vec3(1.0f), // bounds 
+		0.0001f,        // dt
 		0.6f            // boundaryDamping
 	);
-
-
 	bruh.settings.cellSize = bruh.settings.h;
 	
-	SYS::initParticles(&bruh, settings, 20);
-	bruh.modelScale = 0.1;
+	SYS::initParticles(&bruh, settings, 10);
+	bruh.modelScale = 0.2;
 
 	while (!glfwWindowShouldClose(window))
 	{

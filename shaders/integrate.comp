@@ -86,7 +86,9 @@ void main() {
         if(particle.velocity.x < 0.0) {
             particle.velocity.x = -particle.velocity.x * boundaryDamping;
             //particle.velocity.z = -particle.velocity.z * boundaryDamping;
-
+            
+            particle.velocity.y *= 0.95;
+            particle.velocity.z *= 0.95;
         }
     }
     if(particle.position.x > scaledBounds.x ) {
@@ -94,6 +96,9 @@ void main() {
         if(particle.velocity.x > 0.0) {
             particle.velocity.x = -particle.velocity.x * boundaryDamping;
             //particle.velocity.z = -particle.velocity.z * boundaryDamping;
+
+            particle.velocity.y *= 0.95;
+            particle.velocity.z *= 0.95;
         }
     }
     
@@ -103,6 +108,9 @@ void main() {
         if(particle.velocity.z < 0.0) {
             particle.velocity.z = -particle.velocity.z * boundaryDamping;
             //particle.velocity.x = -particle.velocity.x * boundaryDamping;
+
+            particle.velocity.x *= 0.95;
+            particle.velocity.y *= 0.95;
         }
     }
     if(particle.position.z > scaledBounds.z) {
@@ -110,6 +118,10 @@ void main() {
         if(particle.velocity.z > 0.0) {
             particle.velocity.z = -particle.velocity.z * boundaryDamping;
             //particle.velocity.x = -particle.velocity.x * boundaryDamping;
+
+
+            particle.velocity.x *= 0.95;
+            particle.velocity.y *= 0.95;
         }
     }
         if(particle.position.y > scaledBounds.y + 1.0) {
@@ -117,6 +129,10 @@ void main() {
         if(particle.velocity.y >= 0.0) {
             particle.velocity.y = -particle.velocity.y * boundaryDamping;
             //particle.velocity.z = -particle.velocity.z * boundaryDamping;
+
+
+            particle.velocity.x *= 0.95;
+            particle.velocity.z *= 0.95;
         }
     }
     

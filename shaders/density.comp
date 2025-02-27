@@ -33,13 +33,33 @@ uniform float mass;
 uniform float h;
 uniform float restDensity;
 uniform float gasConst;
-
+#define PI 3.1415926
 float kernelPoly6(float r, float h) {
     if(r > h) return 0.0;
     float h2 = h * h;
     float h4 = h2 * h2;
     float term = 1.0 - (r * r) / h2;
     return 315.0 / (64.0 * 3.14159 * h4 * h) * term * term * term;
+}
+
+
+float smoothingKernelPoly6(float r, float h)
+{
+    float scale = 315.0 / (64.0 * PI * pow(abs(r), 9.0));
+    float v = h * h - r * r;
+    return v * v * v * scale;
+
+}
+
+float SpikyKernelPow2(float dst, float radius)
+{
+	if (dst < radius)
+	{
+		float scale = 15 / (2 * PI * pow(radius, 5));
+		float v = radius - dst;
+		return v * v * scale;
+	}
+	return 0;
 }
 
 float kernelNearDensity(float r, float h) {
@@ -87,6 +107,9 @@ void main() {
                    
                     if(r < h) {
                         density += mass * kernelPoly6(r, h);
+                        
+                        //density +=  mass * SpikyKernelPow2(r, h) ;
+                        
                         nearDensity += mass * kernelNearDensity(r, h);
                     }
                 }
@@ -94,10 +117,14 @@ void main() {
         }
     }
 
-    density = max(density, 0.1);
-    particles[pIndex].density = density;
     float pressure = gasConst * (density - restDensity);
+
+    density = max((density/restDensity) -1, 10);
+
+    particles[pIndex].density = density;
+
     particles[pIndex].pressure = max(pressure, 0.0);
+
 
     memoryBarrierBuffer();
 }

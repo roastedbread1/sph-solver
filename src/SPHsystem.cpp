@@ -92,6 +92,7 @@ void SYS::genParticles(SPHsys* system)
 	SetShaderFloat(system->computeShader, "particleSeperation", 0.03f);
 	
 	SetShaderInt(system->computeShader, "particleCubeWidth", system->particleCubeWidth);
+	SetShaderFloat(system->computeShader, "bounds", system->settings.bounds.x);
 	SetShaderFloat(system->computeShader, "h", system->settings.h);
 	SetShaderFloat(system->computeShader, "modelScale", system->modelScale);
 	
